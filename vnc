@@ -1,0 +1,34 @@
+#! /bin/bash
+vnclicense -list | grep "on 20*" | sed 's/[0-1][0-9]\/[0-3][0-9]\/\([12][0-9][0-9][0-9]\)/\1/g' | tr ' ' \\n | grep . | sort -nu | sed -n '1!p' > /tmp/VNClicense_output.log
+VNClicense_file=/tmp/VNClicense_output.log
+x=0
+temptext=""
+exittext=""
+exitcode=0
+tempexitcode=0
+while IFS= read -r T
+do
+x=$((x+1))
+    currentdate=$(date +%s)
+        VNClicense_exp=$(date -d "$T" '+%s')
+    exp=$((VNClicense_exp - currentdate))
+    expday=$(($exp / 86400))
+    if (($expday >= 2 && $expday <= 30)); then
+            temptext="WARNING: VNC Licence (${x}) expiring"
+            tempexitcode=1
+    fi
+    if [ ${expday} -ge 30 ]; then
+            temptext="OK : VNC License (${x}) not expired"
+            tempexitcode=0
+    fi
+    if [ ${expday} -le 2 ]; then
+            temptext="CRITICAL: VNC License (${x}) expired"
+            tempexitcode=2
+    fi
+        exittext="${exittext} -- ${temptext}"
+    if [ ${tempexitcode} > ${exitcode} ]; then
+            exitcode=${tempexitcode}
+    fi
+done<"${VNClicense_file}"
+        echo ${exittext}
+        exit ${exitcode}
